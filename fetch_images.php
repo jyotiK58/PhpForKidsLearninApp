@@ -1,18 +1,7 @@
 <?php
 header('Content-Type: application/json');
 
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "KidsLearningApp";
-
-// Create connection
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-// Check connection
-if ($conn->connect_error) {
-    die(json_encode(["error" => "Connection failed: " . $conn->connect_error]));
-}
+require "connection.php";
 
 $category = $_GET['category'];
 $sql = "SELECT imageurl FROM DetailCategory WHERE category_id = (SELECT id FROM LearningCategory WHERE type = ?)";
