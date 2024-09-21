@@ -1,34 +1,36 @@
 <?php
-// fetch_videos.php
-
 header('Content-Type: application/json');
-
 require "connection.php";
 
-// Get category from the request
-$category = isset($_GET['category']) ? $_GET['category'] : '';
-
-if (empty($category)) {
-    echo json_encode(["error" => "No category specified"]);
-    exit();
+// Log connection errors
+if ($conn->connect_error) {
+    error_log("Connection failed: " . $conn->connect_error);
+    die(json_encode(array('error' => 'Connection failed: ' . $conn->connect_error)));
 }
 
-// Prepare and execute SQL query
-$sql = "SELECT video_url FROM videos WHERE category = ?";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("s", $category);
-$stmt->execute();
-$result = $stmt->get_result();
+$sql = "SELECT vd.id, vd.title, vd.video_url, vc.type 
+        FROM VideoDetail vd 
+        JOIN VideoCategory vc ON vd.category_id = vc.id";
+$result = $conn->query($sql);
 
-// Fetch all video URLs and encode them as JSON
-$videoUrls = [];
-while ($row = $result->fetch_assoc()) {
-    $videoUrls[] = $row['video_url'];
+// Log query errors
+if (!$result) {
+    error_log("Query failed: " . $conn->error);
+    die(json_encode(array('error' => 'Query failed: ' . $conn->error)));
 }
 
-echo json_encode($videoUrls);
+$videos = array();
 
-// Close the connection
-$stmt->close();
+if ($result->num_rows > 0) {
+    while ($row = $result->fetch_assoc()) {
+        $videos[] = $row; 
+    }
+} else {
+    error_log("No videos found in the database.");
+}
+
+// Return a structured response with "videos" array
+echo json_encode(array('videos' => $videos));
+
 $conn->close();
 ?>
