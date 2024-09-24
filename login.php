@@ -1,14 +1,84 @@
-<?php 
+<?php
 require "connection.php";
-$username = "jyoti";
-$password = "jyoti";
-$mysql_query = "select * from users where username like '$username' and password like '$password';";
-$result = mysqli_query($conn ,$mysql_query );
-if(mysqli_num_rows($result) > 0) {
-echo "login success !!!!! Welcome user";
+
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// Start the session at the beginning
+session_start();
+
+// Check if POST data is received
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Extract POST data
+    $username = trim($_POST['username']);
+    $password = trim($_POST['password']);
+
+    // Validate data
+    if (empty($username) || empty($password)) {
+        echo "Please fill all fields";
+        exit();
+    }
+
+    // Prepare SQL statement to fetch user data
+    $stmt = $conn->prepare("SELECT id, password FROM users WHERE username = ?");
+    if (!$stmt) {
+        echo "Error preparing statement: " . $conn->error;
+        exit();
+    }
+
+    // Bind parameters to the SQL statement
+    $stmt->bind_param("s", $username);
+
+    // Execute the statement
+    $stmt->execute();
+
+    // Store the result
+    $stmt->store_result();
+
+    // Check if the user exists
+    if ($stmt->num_rows > 0) {
+        // Bind the result
+        $stmt->bind_result($userId, $hashed_password);
+        $stmt->fetch();
+
+        // Verify the password
+        if (password_verify($password, $hashed_password)) {
+            // Regenerate session ID to prevent session fixation attacks
+            session_regenerate_id(true);
+
+            // Set session variables for login
+            $_SESSION['user_id'] = $userId;
+            $_SESSION['username'] = $username;
+            $_SESSION['login_time'] = time(); // Store the login timestamp
+
+            echo "Login successful!";
+            // Redirect to a protected page or dashboard
+            // header("Location: dashboard.php");
+            exit();
+        } else {
+            echo "Invalid password.";
+        }
+    } else {
+        echo "User not found.";
+    }
+
+    // Close statement and connection
+    $stmt->close();
+    $conn->close();
+} else {
+    echo "Invalid request method!";
 }
-else {
-echo "login not success";
+
+
+if (isset($_SESSION['login_time'])) {
+    // Check if the session has expired (6 hours = 21600 seconds)
+    if (time() - $_SESSION['login_time'] > 120) {
+        // Session expired
+        session_unset(); 
+        session_destroy(); 
+        header("Location: login.php"); 
+        exit();
+    }
 }
-$conn->close();
 ?>
