@@ -5,52 +5,50 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// Check if POST data is received
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-  $userId = $_POST['user_id']; 
-  $firstname = $_POST['firstname'];
-  $lastname = $_POST['lastname'];
-  $email = $_POST['email'];
-  $username = $_POST['username'];
-  $phonenumber = $_POST['phonenumber'];
-  $address = $_POST['address'];
-  $password = $_POST['password'];
+    $userId = $_POST['user_id'];
+    $firstname = $_POST['firstname'];
+    $lastname = $_POST['lastname'];
+    $email = $_POST['email'];
+    $username = $_POST['username'];
+    $phonenumber = $_POST['phonenumber'];
+    $address = $_POST['address'];
+    $password = $_POST['password'];
 
-  if (empty($firstname) || empty($lastname) || empty($email) || empty($username) || empty($phonenumber) || empty($address)) {
-      echo "Please fill all fields";
-      exit();
-  }
+    if (empty($firstname) || empty($lastname) || empty($email) || empty($username) || empty($phonenumber) || empty($address)) {
+        echo json_encode(['status' => 'error', 'message' => 'Please fill all fields']);
+        exit();
+    }
 
-  $sql = "UPDATE users SET firstname = ?, lastname = ?, email = ?, username = ?, phone_number = ?, address = ?";
-  
-  if (!empty($password)) {
-      $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-      $sql .= ", password = ?";
-  }
+    $sql = "UPDATE users SET firstname = ?, lastname = ?, email = ?, username = ?, phone_number = ?, address = ?";
 
-  $sql .= " WHERE id = ?";
+    if (!empty($password)) {
+        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+        $sql .= ", password = ?";
+    }
 
-  if ($stmt = $conn->prepare($sql)) {
-      if (!empty($password)) {
-          $stmt->bind_param("sssssssi", $firstname, $lastname, $email, $username, $phonenumber, $address, $hashed_password, $userId);
-      } else {
-          $stmt->bind_param("ssssssi", $firstname, $lastname, $email, $username, $phonenumber, $address, $userId);
-      }
+    $sql .= " WHERE id = ?";
 
-      if ($stmt->execute()) {
-          echo "Update successful!";
-      } else {
-          echo "Error executing statement: " . $stmt->error;
-      }
+    if ($stmt = $conn->prepare($sql)) {
+        if (!empty($password)) {
+            $stmt->bind_param("sssssssi", $firstname, $lastname, $email, $username, $phonenumber, $address, $hashed_password, $userId);
+        } else {
+            $stmt->bind_param("ssssssi", $firstname, $lastname, $email, $username, $phonenumber, $address, $userId);
+        }
 
-      $stmt->close();
-  } else {
-      echo "Error preparing statement: " . $conn->error;
-  }
+        if ($stmt->execute()) {
+            echo json_encode(['status' => 'success', 'message' => 'Update successful!']);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Error executing statement: ' . $stmt->error]);
+        }
 
-  $conn->close();
+        $stmt->close();
+    } else {
+        echo json_encode(['status' => 'error', 'message' => 'Error preparing statement: ' . $conn->error]);
+    }
+
+    $conn->close();
 } else {
-  echo "Invalid request method!";
+    echo json_encode(['status' => 'error', 'message' => 'Invalid request method']);
 }
-
 ?>

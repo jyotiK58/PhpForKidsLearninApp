@@ -16,14 +16,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     // Validate data
     if (empty($username) || empty($password)) {
-        echo "Please fill all fields";
+        echo json_encode(["status" => "error", "message" => "Please fill all fields"]);
         exit();
     }
 
     // Prepare SQL statement to fetch user data
     $stmt = $conn->prepare("SELECT id, password FROM users WHERE username = ?");
     if (!$stmt) {
-        echo "Error preparing statement: " . $conn->error;
+        echo json_encode(["status" => "error", "message" => "Error preparing statement: " . $conn->error]);
         exit();
     }
 
@@ -52,32 +52,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $_SESSION['username'] = $username;
             $_SESSION['login_time'] = time(); // Store the login timestamp
 
-            echo "Login successful!";
-            // Redirect to a protected page or dashboard
-            // header("Location: dashboard.php");
+            // Return success response with user ID
+            echo json_encode(["status" => "success", "user_id" => $userId, "message" => "Login successful!"]);
             exit();
         } else {
-            echo "Invalid password.";
+            echo json_encode(["status" => "error", "message" => "Invalid password."]);
         }
     } else {
-        echo "User not found.";
+        echo json_encode(["status" => "error", "message" => "User not found."]);
     }
 
     // Close statement and connection
     $stmt->close();
     $conn->close();
 } else {
-    echo "Invalid request method!";
+    echo json_encode(["status" => "error", "message" => "Invalid request method!"]);
 }
 
-
+// Session expiration check
 if (isset($_SESSION['login_time'])) {
     // Check if the session has expired (6 hours = 21600 seconds)
-    if (time() - $_SESSION['login_time'] > 120) {
+    if (time() - $_SESSION['login_time'] > 21600) { // Changed to 21600 for 6 hours
         // Session expired
-        session_unset(); 
-        session_destroy(); 
-        header("Location: login.php"); 
+        session_unset();
+        session_destroy();
+        header("Location: login.php");
         exit();
     }
 }
