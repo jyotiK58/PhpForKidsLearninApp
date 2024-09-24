@@ -8,7 +8,8 @@ if ($conn->connect_error) {
     die(json_encode(array('error' => 'Connection failed: ' . $conn->connect_error)));
 }
 
-$sql = "SELECT vd.id, vd.title, vd.video_url, vc.type 
+// Update SQL query to fetch 'image_url'
+$sql = "SELECT vd.id, vd.title, vd.video_url, vd.image_url, vc.type 
         FROM VideoDetail vd 
         JOIN VideoCategory vc ON vd.category_id = vc.id";
 $result = $conn->query($sql);
@@ -23,13 +24,13 @@ $videos = array();
 
 if ($result->num_rows > 0) {
     while ($row = $result->fetch_assoc()) {
-        $videos[] = $row; 
+        $videos[] = $row;
     }
 } else {
     error_log("No videos found in the database.");
 }
 
-// Return a structured response with "videos" array
+// Return a structured response with "videos" array including 'image_url'
 echo json_encode(array('videos' => $videos));
 
 $conn->close();
