@@ -5,39 +5,40 @@ require("../connection.php");
 // Initialize message variables
 $message = "";
 
-// Fetch questions
-$sql = "SELECT * FROM QuizQuestions";
+// Fetch answers
+$sql = "SELECT * FROM QuizAnswer";  // Changed from QuizAnswers to QuizAnswer
 $result = $conn->query($sql);
 
 // Handle deletion
 if (isset($_GET['delete'])) {
     $id_to_delete = $_GET['delete'];
-    $delete_sql = "DELETE FROM QuizQuestions WHERE id=?";
+    $delete_sql = "DELETE FROM QuizAnswer WHERE id=?";
     $stmt = $conn->prepare($delete_sql);
     $stmt->bind_param("i", $id_to_delete);
     $stmt->execute();
     $stmt->close();
-    header("Location: manage_questions.php");
+    header("Location: manage_answers.php");
     exit;
 }
 
-// Handle insertion of a new question
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_question'])) {
-    $question_text = $_POST['question_text'];
-    $category_id = $_POST['category_id'];
+// Handle insertion of a new answer
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_answer'])) {
+    $question_id = $_POST['question_id'];
+    $answer_text = $_POST['answer_text'];
+    $is_correct = isset($_POST['is_correct']) ? 1 : 0;
 
     // Prepare and bind
-    $stmt = $conn->prepare("INSERT INTO QuizQuestions (question_text, category_id) VALUES (?, ?)");
-    $stmt->bind_param("si", $question_text, $category_id);
+    $stmt = $conn->prepare("INSERT INTO QuizAnswer (question_id, answer_text, is_correct) VALUES (?, ?, ?)");
+    $stmt->bind_param("isi", $question_id, $answer_text, $is_correct);
 
     if ($stmt->execute()) {
-        $message = "Question added successfully!";
+        $message = "Answer added successfully!";
     } else {
-        $message = "Error adding question: " . $stmt->error;
+        $message = "Error adding answer: " . $stmt->error;
     }
 
     $stmt->close();
-    header("Location: manage_questions.php?message=" . urlencode($message));
+    header("Location: manage_answers.php?message=" . urlencode($message));
     exit;
 }
 
@@ -48,7 +49,7 @@ $conn->close();
 <html lang="en">
 
 <head>
-    <title>Manage Questions</title>
+    <title>Manage Answers</title>
     <link rel="stylesheet" href="https://cdn.datatables.net/2.1.7/css/dataTables.dataTables.min.css">
     <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
@@ -63,9 +64,9 @@ $conn->close();
         <!-- Include Sidebar -->
         <?php include('sidebar.php'); ?>
         <div class="container">
-            <h1>Manage Questions</h1>
-            <button class="btn btn-primary mb-3" data-toggle="modal" data-target="#addQuestionModal">Add New
-                Question</button>
+            <h1>Manage Answers</h1>
+            <button class="btn btn-primary mb-3" data-toggle="modal" data-target="#addAnswerModal">Add New
+                Answer</button>
 
             <!-- Display message -->
             <?php if (isset($_GET['message'])): ?>
@@ -78,8 +79,9 @@ $conn->close();
                 <thead class="thead-light">
                     <tr>
                         <th>ID</th>
-                        <th>Question Text</th>
-                        <th>Category ID</th>
+                        <th>Question ID</th>
+                        <th>Answer Text</th>
+                        <th>Is Correct</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -89,16 +91,17 @@ $conn->close();
                         while ($row = $result->fetch_assoc()) {
                             echo "<tr>
                                 <td>{$row['id']}</td>
-                                <td>" . htmlspecialchars($row['question_text']) . "</td>
-                                <td>{$row['category_id']}</td>
+                                <td>{$row['question_id']}</td>
+                                <td>" . htmlspecialchars($row['answer_text']) . "</td>
+                                <td>" . ($row['is_correct'] ? 'Yes' : 'No') . "</td>
                                 <td>
-                                    <a href='edit_question.php?id={$row['id']}' class='btn btn-warning btn-sm'>Edit</a>
-                                    <a href='manage_questions.php?delete={$row['id']}' class='btn btn-danger btn-sm' onclick='return confirm(\"Are you sure you want to delete this question?\");'>Delete</a>
+                                    <a href='edit_answer.php?id={$row['id']}' class='btn btn-warning btn-sm'>Edit</a>
+                                    <a href='manage_answers.php?delete={$row['id']}' class='btn btn-danger btn-sm' onclick='return confirm(\"Are you sure you want to delete this answer?\");'>Delete</a>
                                 </td>
                               </tr>";
                         }
                     } else {
-                        echo "<tr><td colspan='4'>No questions found</td></tr>";
+                        echo "<tr><td colspan='5'>No answers found</td></tr>";
                     }
                     ?>
                 </tbody>
@@ -106,31 +109,35 @@ $conn->close();
         </div>
     </div>
 
-    <!-- Add Question Modal -->
-    <div class="modal fade" id="addQuestionModal" tabindex="-1" role="dialog" aria-labelledby="addQuestionModalLabel"
+    <!-- Add Answer Modal -->
+    <div class="modal fade" id="addAnswerModal" tabindex="-1" role="dialog" aria-labelledby="addAnswerModalLabel"
         aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="addQuestionModalLabel">Add New Question</h5>
+                    <h5 class="modal-title" id="addAnswerModalLabel">Add New Answer</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <form action="manage_questions.php" method="POST">
+                <form action="manage_answers.php" method="POST">
                     <div class="modal-body">
                         <div class="form-group">
-                            <label for="question_text">Question Text</label>
-                            <input type="text" class="form-control" id="question_text" name="question_text" required>
+                            <label for="question_id">Question ID</label>
+                            <input type="number" class="form-control" id="question_id" name="question_id" required>
                         </div>
                         <div class="form-group">
-                            <label for="category_id">Category ID</label>
-                            <input type="number" class="form-control" id="category_id" name="category_id" required>
+                            <label for="answer_text">Answer Text</label>
+                            <input type="text" class="form-control" id="answer_text" name="answer_text" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="is_correct">Is Correct?</label>
+                            <input type="checkbox" id="is_correct" name="is_correct">
                         </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                        <button type="submit" name="add_question" class="btn btn-primary">Add Question</button>
+                        <button type="submit" name="add_answer" class="btn btn-primary">Add Answer</button>
                     </div>
                 </form>
             </div>

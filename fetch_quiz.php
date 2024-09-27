@@ -8,7 +8,7 @@ error_reporting(E_ALL);
 ini_set('log_errors', 1);
 ini_set('error_log', 'path/to/your/error.log');
 
-require "connection.php"; // Ensure this file correctly sets up your $conn variable
+require "connection.php"; 
 
 // Check if the connection is successful
 if ($conn->connect_error) {
